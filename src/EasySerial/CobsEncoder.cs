@@ -7,17 +7,20 @@ namespace EasySerial
         private const int DELIMITER = 0x00;
         private const int MAX_CHUNK_LENGTH = 0xFF;
 
-        public byte[] Encode(in byte[] raw)
+        public int Encode(in byte[] raw, out byte[] output)
         {
-            var output = new byte[raw.Length + 2];
-            
+            var inputLength = raw.Length;
+
+            var outputLength = GetMaxOutputLength(inputLength);
+            output = new byte[outputLength];
+
             var readPos = 0;
             var writePos = 1;
             var chunkPos = 0;
 
             byte chunkLenth = 1;
-            
-            while (readPos < raw.Length)
+
+            while (readPos < inputLength)
             {
                 if (raw[readPos] != DELIMITER)
                 {
@@ -27,14 +30,17 @@ namespace EasySerial
                         chunkPos = writePos;
                         chunkLenth = 1;
                         writePos++;
+                        // readPos++;
                     }
-
-                    output[writePos] = raw[readPos];
-                    writePos++;
-                    readPos++;
-                    chunkLenth++;
+                    else
+                    {
+                        output[writePos] = raw[readPos];
+                        chunkLenth++;
+                        writePos++;
+                        readPos++;
+                    }
                 }
-                else 
+                else
                 {
                     output[chunkPos] = chunkLenth;
                     chunkPos = writePos;
@@ -47,8 +53,12 @@ namespace EasySerial
             output[chunkPos] = chunkLenth;
             output[writePos] = DELIMITER;
 
-            return output;
+            return writePos + 1;
         }
 
+        private static int GetMaxOutputLength(int inputLength)
+        {
+            return inputLength + inputLength % (MAX_CHUNK_LENGTH - 1) + 2;
+        }
     }
 }
