@@ -56,7 +56,7 @@ namespace EasySerial.Tests
             Assert.Equal(0x02, output[0xFF]);
             Assert.Equal(
                 input.Length, 
-                new ArraySegment<byte>(output, 0, length).Where(a => a == 0x01).Count()
+                new ArraySegment<byte>(output, 0, length).Count(a => a == 0x01)
             );
         }
 
@@ -82,7 +82,7 @@ namespace EasySerial.Tests
             Assert.Equal(102, output[154]);
             Assert.Equal(
                 input.Length - 3, 
-                new ArraySegment<byte>(output, 0, length).Where(a => a == 0x01).Count()
+                new ArraySegment<byte>(output, 0, length).Count(a => a == 0x01)
             );
         }
     }
