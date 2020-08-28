@@ -86,5 +86,29 @@ namespace EasySerial.Tests
             Assert.Equal(254, output.Count(a => a == 0x42));
             Assert.Equal(127, output.Count(a => a == 0xAB));
         }
+
+        [Fact]
+        public void Decoder_DelimiterInInput_ResetsParser()
+        {
+            var input = new byte[32];
+            Array.Fill<byte>(input, 0x04);
+            input[0] = 0x1F;
+            input[31] = 0x00;
+            input[12] = 0x00;
+            input[13] = 0x12;
+
+            var decoder = new CobsDecoder();
+
+            bool result = default;
+            byte[] output = null;
+            foreach (var b in input)
+            {
+                result = decoder.NextByte(b, out output);
+            }
+
+            Assert.True(result);
+            Assert.Equal(17, output.Length);
+            Assert.Equal(17, output.Count(a => a == 0x04));
+        }
     }
 }
