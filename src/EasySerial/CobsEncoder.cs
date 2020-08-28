@@ -4,7 +4,8 @@ namespace EasySerial
 {
     public class CobsEncoder
     {
-        private const int DELIMITER = 0x00;
+        public const int DELIMITER = 0x00;
+        
         private const int MAX_CHUNK_LENGTH = 0xFF;
 
         public int Encode(in byte[] raw, out byte[] output)
