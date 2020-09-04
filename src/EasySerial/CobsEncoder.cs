@@ -4,16 +4,22 @@ namespace EasySerial
 {
     public class CobsEncoder
     {
+        public const int MAX_PACKET_SIZE = 1 << 10;
         public const int DELIMITER = 0x00;
         
-        private const int MAX_CHUNK_LENGTH = 0xFF;
+        private const int MAX_CHUNK_LENGTH = byte.MaxValue;
 
-        public int Encode(in byte[] raw, out byte[] output)
+        private readonly byte[] buffer = new byte[GetMaxOutputLength(MAX_PACKET_SIZE)];
+
+        public byte[] Encode(in byte[] raw)
         {
             var inputLength = raw.Length;
 
-            var outputLength = GetMaxOutputLength(inputLength);
-            output = new byte[outputLength];
+            var maxOutputLength = GetMaxOutputLength(inputLength);
+            if (maxOutputLength > buffer.Length)
+            {
+                throw new ArgumentOutOfRangeException(nameof(raw), "Input is too long");
+            }
 
             var readPos = 0;
             var writePos = 1;
@@ -27,7 +33,7 @@ namespace EasySerial
                 {
                     if (chunkLength == MAX_CHUNK_LENGTH)
                     {
-                        output[chunkPos] = MAX_CHUNK_LENGTH;
+                        buffer[chunkPos] = MAX_CHUNK_LENGTH;
                         chunkPos = writePos;
                         chunkLength = 1;
                         writePos++;
@@ -35,7 +41,7 @@ namespace EasySerial
                     }
                     else
                     {
-                        output[writePos] = raw[readPos];
+                        buffer[writePos] = raw[readPos];
                         chunkLength++;
                         writePos++;
                         readPos++;
@@ -43,7 +49,7 @@ namespace EasySerial
                 }
                 else
                 {
-                    output[chunkPos] = chunkLength;
+                    buffer[chunkPos] = chunkLength;
                     chunkPos = writePos;
                     chunkLength = 1;
                     writePos++;
@@ -51,10 +57,14 @@ namespace EasySerial
                 }
             }
 
-            output[chunkPos] = chunkLength;
-            output[writePos] = DELIMITER;
+            buffer[chunkPos] = chunkLength;
+            buffer[writePos] = DELIMITER;
 
-            return writePos + 1;
+            var outputSize = writePos + 1;
+            var output = new byte[outputSize];
+            Array.Copy(buffer, output, outputSize);
+
+            return output;
         }
 
         private static int GetMaxOutputLength(int inputLength)
