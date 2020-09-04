@@ -4,11 +4,12 @@ namespace EasySerial
 {
     public class CobsDecoder
     {
-        private const int MAX_PACKET_SIZE = 1 << 12;
-        private readonly byte[] buffer = new byte[MAX_PACKET_SIZE];
+        private readonly byte[] buffer = new byte[CobsEncoder.MAX_PACKET_SIZE];
 
         private bool hasStart;
         private int writePos;
+
+        private bool hasDelimiter;
         private int chunkLength;
 
         public bool NextByte(in byte input, out byte[] output)
@@ -19,7 +20,9 @@ namespace EasySerial
             {
                 if (input != CobsEncoder.DELIMITER)
                 {
+                    hasDelimiter = input != 0xFF;
                     chunkLength = input - 1;
+                    
                     writePos = 0;
                     hasStart = true;
                 }
@@ -36,6 +39,7 @@ namespace EasySerial
                 }
                 else 
                 {
+                    // unexpected packet delimiter - reset and read next packet 
                     hasStart = false;
                 }
 
@@ -45,12 +49,23 @@ namespace EasySerial
             {
                 if (input != CobsEncoder.DELIMITER)
                 {
-                    buffer[writePos] = CobsEncoder.DELIMITER;
-                    writePos++;
-                    chunkLength += input;
-
-                    if (chunkLength > MAX_PACKET_SIZE)
+                    if (hasDelimiter)
                     {
+                        buffer[writePos] = CobsEncoder.DELIMITER;
+                        writePos++;
+                    
+                        hasDelimiter = input != 0xFF;
+                        chunkLength += input;
+                    }
+                    else 
+                    {
+                        hasDelimiter = input != 0xFF;
+                        chunkLength += input - 1;
+                    }
+
+                    if (chunkLength > CobsEncoder.MAX_PACKET_SIZE)
+                    {
+                        // prevent buffer overflow: discard data and start over
                         hasStart = false;
                     }
 
@@ -66,11 +81,9 @@ namespace EasySerial
                     return true;
                 }
             }
-            else 
-            {
-                // Shall never reach here
-                throw new InvalidOperationException();
-            }
+            
+            // Shall never reach here
+            throw new InvalidOperationException();
         }
     }
 }
