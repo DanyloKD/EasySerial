@@ -7,17 +7,21 @@ namespace EasySerial
         public static int ChecksumLength = sizeof(byte);
 
         private readonly byte polinominal;
+        private readonly byte init;
+
         private readonly byte[] table;
         
-        public Crc8(byte polinominal = 0x1D)
+        public Crc8(byte polinominal, byte init)
         {
             this.polinominal = polinominal;
-            this.table = GenerateTable(this.polinominal);
+            this.init = init;
+
+            this.table = this.GenerateTable(this.polinominal);
         }
 
         public byte Calculate(ReadOnlySpan<byte> input)
         {
-            byte crc = 0;
+            byte crc = this.init;
             foreach (var b in input)
             {
                 byte index = (byte)(b ^ crc);
