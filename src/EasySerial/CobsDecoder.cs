@@ -20,7 +20,7 @@ namespace EasySerial
             {
                 if (input != CobsEncoder.DELIMITER)
                 {
-                    hasDelimiter = input != 0xFF;
+                    hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
                     chunkLength = input - 1;
                     
                     writePos = 0;
@@ -54,12 +54,12 @@ namespace EasySerial
                         buffer[writePos] = CobsEncoder.DELIMITER;
                         writePos++;
                     
-                        hasDelimiter = input != 0xFF;
+                        hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
                         chunkLength += input;
                     }
                     else 
                     {
-                        hasDelimiter = input != 0xFF;
+                        hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
                         chunkLength += input - 1;
                     }
 
@@ -85,5 +85,6 @@ namespace EasySerial
             // Shall never reach here
             throw new InvalidOperationException();
         }
+
     }
 }

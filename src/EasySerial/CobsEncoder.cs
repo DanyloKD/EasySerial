@@ -7,7 +7,7 @@ namespace EasySerial
         public const int MAX_PACKET_SIZE = 1 << 10;
         public const int DELIMITER = 0x00;
         
-        private const int MAX_CHUNK_LENGTH = byte.MaxValue;
+        public const int MAX_CHUNK_LENGTH = byte.MaxValue;
 
         private readonly byte[] buffer = new byte[GetMaxOutputLength(MAX_PACKET_SIZE)];
 
