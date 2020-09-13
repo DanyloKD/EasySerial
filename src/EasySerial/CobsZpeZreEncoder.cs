@@ -35,7 +35,7 @@ namespace EasySerial
             var writePos = 1;
             var chunkPos = 0;
 
-            var delimitersInRun = 0;
+            var zeroesRunLength = 0;
 
             byte chunkLength = 1;
 
@@ -43,10 +43,10 @@ namespace EasySerial
             {
                 if (raw[readPos] != DELIMITER)
                 {
-                    if (delimitersInRun > 0)
+                    if (zeroesRunLength > 0)
                     {
                         buffer[chunkPos] = chunkLength;
-                        delimitersInRun = 0;
+                        zeroesRunLength = 0;
                         chunkPos = writePos;
                         chunkLength = 1;
                         writePos++;
@@ -72,33 +72,33 @@ namespace EasySerial
                 {
                     if (chunkLength == 1)
                     {
-                        if (delimitersInRun < ZERO_RUN_LENGTH)
+                        if (zeroesRunLength < ZERO_RUN_LENGTH)
                         {
-                            delimitersInRun++;
+                            zeroesRunLength++;
                             readPos++;
                         }
                         else
                         {
-                            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + delimitersInRun);
+                            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
                             chunkPos = writePos;
                             writePos++;
-                            delimitersInRun = 0;
+                            zeroesRunLength = 0;
                             chunkLength = 1;
                         }
                     }
                     else if (chunkLength <= ZERO_PAIR_LENGTH)
                     {
-                        if (delimitersInRun < ZERO_PAIR_COUNT)
+                        if (zeroesRunLength < ZERO_PAIR_COUNT)
                         {
-                            delimitersInRun++;
+                            zeroesRunLength++;
                             readPos++;
                         }
                         else
                         {
-                            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 1));
+                            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
                             chunkPos = writePos; 
                             writePos++;
-                            delimitersInRun = 0;
+                            zeroesRunLength = 0;
                             chunkLength = 1;
                         }
                     }
@@ -113,15 +113,19 @@ namespace EasySerial
                 }
             }
 
-            if (delimitersInRun > 0)
+            if (zeroesRunLength > 0)
             {
-                if (delimitersInRun == ZERO_PAIR_COUNT)
+                if (chunkLength == 1)
                 {
-                    buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 1));
+                    buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength - 1);
+                }
+                else if (zeroesRunLength == ZERO_PAIR_COUNT)
+                {
+                    buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
                 }
                 else
                 {
-                    buffer[chunkPos] = (byte)(ZERO_RUN_MIN + delimitersInRun);
+                    throw new InvalidOperationException();
                 }
             }
             else
