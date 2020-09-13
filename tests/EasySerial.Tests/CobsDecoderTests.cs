@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using Xunit;
 
@@ -141,11 +139,11 @@ namespace EasySerial.Tests
         [Fact]
         public void Decode_WithMaximumLengthInput_Works()
         {
-            var fullChunkLength = 255 - 1;
+            var fullChunkLength = CobsEncoder.MAX_CHUNK_LENGTH - 1; 
             var fullChunksCount = CobsEncoder.MAX_PACKET_SIZE / fullChunkLength;
             var totalBytesInFullChunks = fullChunksCount * fullChunkLength;
             var bytesInLastChunk = CobsEncoder.MAX_PACKET_SIZE - totalBytesInFullChunks;
-
+            
             var input = GenerateInput(
                 Enumerable
                     .Repeat((byte)fullChunkLength, fullChunksCount)
@@ -168,9 +166,39 @@ namespace EasySerial.Tests
             Assert.Equal(CobsEncoder.MAX_PACKET_SIZE, output.Count(a => a == 0x04));
         }
 
+        [Fact]
+        public void Decode_TooLongInput_Fails()
+        {
+            var fullChunkLength = CobsEncoder.MAX_CHUNK_LENGTH - 1;
+            var fullChunksCount = CobsEncoder.MAX_PACKET_SIZE / fullChunkLength;
+            var totalBytesInFullChunks = fullChunksCount * fullChunkLength;
+            var bytesInLastChunk = CobsEncoder.MAX_PACKET_SIZE - totalBytesInFullChunks;
+            fullChunksCount++;
+
+            var input = GenerateInput(
+                Enumerable
+                    .Repeat((byte)fullChunkLength, fullChunksCount)
+                    .Append((byte)bytesInLastChunk)
+                    .ToArray(),
+                0x04
+            );
+
+            var decoder = new CobsDecoder();
+
+            bool result = default;
+            byte[] output = null;
+            foreach (var b in input)
+            {
+                result = decoder.NextByte(b, out output);
+                Assert.False(result);
+            }
+
+            Assert.False(result);
+        }
+
         private byte[] DataChunk(byte length, byte value)
         {
-            if (length == 0xff) throw new ArgumentOutOfRangeException(nameof(length));
+            if (length == byte.MaxValue) throw new ArgumentOutOfRangeException(nameof(length));
             if (value == CobsEncoder.DELIMITER) throw new ArgumentException("Delimiter cannot be used as value", nameof(value));
             
             return (new byte[] { (byte)(length + 1) })
