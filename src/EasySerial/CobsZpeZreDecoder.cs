@@ -4,7 +4,7 @@ namespace EasySerial
 {
     public class CobsZpeZreDecoder
     {
-        private readonly byte[] buffer = new byte[CobsEncoder.MAX_PACKET_SIZE];
+        private readonly byte[] buffer = new byte[CobsZpeZreEncoder.MAX_PACKET_SIZE];
 
         private bool hasStart;
 
@@ -28,13 +28,9 @@ namespace EasySerial
                 ProcessNextContentByte(input);
                 return false;
             }
-            else if (writePos == chunkLength)
-            {
-                return ProcessNextControlByte(input, ref output);
-            }
-
-            // Shall never reach here
-            throw new InvalidOperationException();
+            
+            // writePos == chunkLength
+            return ProcessNextControlByte(input, ref output);
         }
 
         private void ProcessFirstControlByte(byte input)
