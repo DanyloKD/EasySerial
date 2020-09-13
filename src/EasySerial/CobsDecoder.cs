@@ -45,45 +45,41 @@ namespace EasySerial
 
                 return false;
             }
-            else if (writePos == chunkLength)
+
+            // (writePos == chunkLength)
+            if (input != CobsEncoder.DELIMITER)
             {
-                if (input != CobsEncoder.DELIMITER)
+                if (hasDelimiter)
                 {
-                    if (hasDelimiter)
-                    {
-                        buffer[writePos] = CobsEncoder.DELIMITER;
-                        writePos++;
+                    buffer[writePos] = CobsEncoder.DELIMITER;
+                    writePos++;
                     
-                        hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
-                        chunkLength += input;
-                    }
-                    else 
-                    {
-                        hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
-                        chunkLength += input - 1;
-                    }
-
-                    if (chunkLength > CobsEncoder.MAX_PACKET_SIZE)
-                    {
-                        // prevent buffer overflow: discard data and start over
-                        hasStart = false;
-                    }
-
-                    return false; 
+                    hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
+                    chunkLength += input;
                 }
                 else 
                 {
-                    output = new byte[writePos];
-
-                    Array.Copy(buffer, output, writePos);
-                    hasStart = false;
-
-                    return true;
+                    hasDelimiter = input != CobsEncoder.MAX_CHUNK_LENGTH;
+                    chunkLength += input - 1;
                 }
+
+                if (chunkLength > CobsEncoder.MAX_PACKET_SIZE)
+                {
+                    // prevent buffer overflow: discard data and start over
+                    hasStart = false;
+                }
+
+                return false; 
             }
-            
-            // Shall never reach here
-            throw new InvalidOperationException();
+            else 
+            {
+                output = new byte[writePos];
+
+                Array.Copy(buffer, output, writePos);
+                hasStart = false;
+
+                return true;
+            }
         }
 
     }
