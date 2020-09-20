@@ -18,7 +18,6 @@ namespace EasySerial.Tests
             );
         }
 
-
         [Fact]
         public void Encoder_LongPacketWithoutDelimiters_InsertsSeparators()
         {
@@ -94,7 +93,7 @@ namespace EasySerial.Tests
             var output = encoder.Encode(input);
 
             Assert.Equal(2, output.Length);
-            Assert.Equal(0xDE, output[0]);
+            Assert.Equal(0xDF, output[0]);
             Assert.Equal(0x00, output[1]);
         }
 
@@ -109,7 +108,7 @@ namespace EasySerial.Tests
             var output = encoder.Encode(input);
 
             Assert.Equal(
-                new byte[] { 0xE0, 0x01, 0xDB, 0x00 },
+                new byte[] { 0xE0, 0x01, 0xDC, 0x00 },
                 output
             );
         }
@@ -123,9 +122,76 @@ namespace EasySerial.Tests
             var output = encoder.Encode(input);
 
             Assert.Equal(
-                new byte[] { 0xD0, 0x00 },
+                new byte[] { 0xD1, 0x00 },
                 output
             );
+        }
+
+        [Fact]
+        public void Encoder_WithZeroesRun_CompressZeroes()
+        {
+            var encoder = new CobsZpeZreEncoder();
+            var input = new byte[30];
+            var output = encoder.Encode(input);
+
+            Assert.Equal(new byte[] { 0xDF, 0xDF, 0x00 }, output);
+        }
+
+        [Fact]
+        public void Encoder_WithZeroPair_CompressZeroes()
+        {
+            var encoder = new CobsZpeZreEncoder();
+            var input = new byte[] { 0x42, 0x00, 0x00};
+            var output = encoder.Encode(input);
+
+            Assert.Equal(new byte[] { 0xE0, 0x42, 0x00 }, output);
+        }
+
+        [Fact]
+        public void Encoder_TwoBlocksZeroPairEnd_CompressZeroes()
+        {
+            var encoder = new CobsZpeZreEncoder();
+            var input = new byte[64];
+            Array.Fill<byte>(input, 0x42, 0, 30);
+            Array.Fill<byte>(input, 0x42, 32, 30);
+
+            var output = encoder.Encode(input);
+
+            Assert.Equal(63, output.Length);
+            Assert.Equal(60, output.Count(a => a == 0x42));
+            Assert.Equal(0xFD, output[0]);
+            Assert.Equal(0xFD, output[31]);
+            Assert.Equal(CobsZpeZreEncoder.DELIMITER, output.Last());
+        }
+
+        [Fact]
+        public void Encoder_LongPacketWithDataExceedZeroPairCompressionLimit_DontCompressZeroPair()
+        {
+            var encoder = new CobsZpeZreEncoder();
+
+            var input = new byte[33];
+            Array.Fill<byte>(input, 0x42, 0, 31);
+
+            var output = encoder.Encode(input);
+
+            Assert.Equal(34, output.Length);
+            Assert.Equal(32, output[0]);
+            Assert.Equal(0xD1, output[32]);
+            Assert.Equal(CobsZpeZreEncoder.DELIMITER, output.Last());
+            Assert.Equal(31, output.Count(a => a == 0x42));
+        }
+
+
+        [Fact]
+        public void Encoder_WithTooLongInput_Throws()
+        {
+            var encoder = new CobsZpeZreEncoder();
+            var input = new byte[CobsZpeZreEncoder.MAX_PACKET_SIZE + 1];
+            Array.Fill<byte>(input, 1);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() => {
+                encoder.Encode(input);
+            });
         }
 
     }

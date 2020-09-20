@@ -45,7 +45,19 @@ namespace EasySerial
                 {
                     if (zeroesRunLength > 0)
                     {
-                        buffer[chunkPos] = chunkLength;
+                        if (chunkLength == 1)
+                        {
+                            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
+                        }
+                        else if (zeroesRunLength == ZERO_PAIR_COUNT)
+                        {
+                            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
+                        }
+                        else
+                        {
+                            buffer[chunkPos] = chunkLength;
+                        }
+
                         zeroesRunLength = 0;
                         chunkPos = writePos;
                         chunkLength = 1;
@@ -117,15 +129,11 @@ namespace EasySerial
             {
                 if (chunkLength == 1)
                 {
-                    buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength - 1);
+                    buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
                 }
                 else if (zeroesRunLength == ZERO_PAIR_COUNT)
                 {
                     buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
-                }
-                else
-                {
-                    throw new InvalidOperationException();
                 }
             }
             else
