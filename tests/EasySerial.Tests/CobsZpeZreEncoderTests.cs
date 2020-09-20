@@ -176,11 +176,10 @@ namespace EasySerial.Tests
 
             Assert.Equal(34, output.Length);
             Assert.Equal(32, output[0]);
-            Assert.Equal(0xD1, output[32]);
+            Assert.Equal(0xD2, output[32]);
             Assert.Equal(CobsZpeZreEncoder.DELIMITER, output.Last());
             Assert.Equal(31, output.Count(a => a == 0x42));
         }
-
 
         [Fact]
         public void Encoder_WithTooLongInput_Throws()

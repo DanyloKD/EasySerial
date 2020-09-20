@@ -18,9 +18,17 @@ namespace EasySerial
         public const int ZERO_PAIR_COUNT = 2;
         private const int ZERO_PAIR_LENGTH = ZERO_PAIR_MAX - ZERO_PAIR_MIN + 1;
         
+        private const int EMPTY_CHUNK_LENGTH = 1;
         
         private readonly byte[] buffer = new byte[GetMaxOutputLength(MAX_PACKET_SIZE)];
 
+        private int readPos;
+        private int writePos;
+        private int chunkPos;
+
+        private byte zeroesRunLength;
+        private byte chunkLength;
+        
         public byte[] Encode(in byte[] raw)
         {
             var inputLength = raw.Length;
@@ -31,110 +39,23 @@ namespace EasySerial
                 throw new ArgumentOutOfRangeException(nameof(raw), "Input is too long");
             }
 
-            var readPos = 0;
-            var writePos = 1;
-            var chunkPos = 0;
-
-            var zeroesRunLength = 0;
-
-            byte chunkLength = 1;
-
+            Reset();
             while (readPos < inputLength)
             {
-                if (raw[readPos] != DELIMITER)
+                var nextByte = raw[readPos];
+                if (nextByte != DELIMITER)
                 {
-                    if (zeroesRunLength > 0)
-                    {
-                        if (chunkLength == 1)
-                        {
-                            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
-                        }
-                        else if (zeroesRunLength == ZERO_PAIR_COUNT)
-                        {
-                            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
-                        }
-                        else
-                        {
-                            buffer[chunkPos] = chunkLength;
-                        }
-
-                        zeroesRunLength = 0;
-                        chunkPos = writePos;
-                        chunkLength = 1;
-                        writePos++;
-                        //readPos++;
-                    }
-                    else if (chunkLength == MAX_CHUNK_LENGTH)
-                    {
-                        buffer[chunkPos] = MAX_CHUNK_LENGTH;
-                        chunkPos = writePos;
-                        chunkLength = 1;
-                        writePos++;
-                        // readPos++;
-                    }
-                    else
-                    {
-                        buffer[writePos] = raw[readPos];
-                        chunkLength++;
-                        writePos++;
-                        readPos++;
-                    }
+                    ProcessNextByte(nextByte);
                 }
                 else
                 {
-                    if (chunkLength == 1)
-                    {
-                        if (zeroesRunLength < ZERO_RUN_LENGTH)
-                        {
-                            zeroesRunLength++;
-                            readPos++;
-                        }
-                        else
-                        {
-                            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
-                            chunkPos = writePos;
-                            writePos++;
-                            zeroesRunLength = 0;
-                            chunkLength = 1;
-                        }
-                    }
-                    else if (chunkLength <= ZERO_PAIR_LENGTH)
-                    {
-                        if (zeroesRunLength < ZERO_PAIR_COUNT)
-                        {
-                            zeroesRunLength++;
-                            readPos++;
-                        }
-                        else
-                        {
-                            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
-                            chunkPos = writePos; 
-                            writePos++;
-                            zeroesRunLength = 0;
-                            chunkLength = 1;
-                        }
-                    }
-                    else
-                    {
-                        buffer[chunkPos] = chunkLength;
-                        chunkPos = writePos;
-                        chunkLength = 1;
-                        writePos++;
-                        readPos++;
-                    }
+                    ProcessNextDelimiter();
                 }
             }
 
             if (zeroesRunLength > 0)
             {
-                if (chunkLength == 1)
-                {
-                    buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
-                }
-                else if (zeroesRunLength == ZERO_PAIR_COUNT)
-                {
-                    buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - 2));
-                }
+                ProcessZeroesRun();
             }
             else
             {
@@ -148,6 +69,120 @@ namespace EasySerial
             Array.Copy(buffer, output, outputSize);
 
             return output;
+        }
+
+        private void ProcessNextByte(byte nextByte)
+        {
+            if (zeroesRunLength > 0)
+            {
+                ProcessZeroesRun();
+                writePos++;
+            }
+            else if (chunkLength == MAX_CHUNK_LENGTH)
+            {
+                buffer[chunkPos] = MAX_CHUNK_LENGTH;
+                CloseChunk();
+                writePos++;
+            }
+            else
+            {
+                buffer[writePos] = nextByte;
+                chunkLength++;
+                writePos++;
+                readPos++;
+            }
+        }
+
+        private void ProcessNextDelimiter()
+        {
+            if (chunkLength == EMPTY_CHUNK_LENGTH)
+            {
+                if (zeroesRunLength < ZERO_RUN_LENGTH)
+                {
+                    ProcessNextZero();
+                }
+                else
+                {
+                    CloseZeroRunChunk();
+                    writePos++;
+                }
+            }
+            else if (chunkLength <= ZERO_PAIR_LENGTH)
+            {
+                if (zeroesRunLength < ZERO_PAIR_COUNT)
+                {
+                    ProcessNextZero();
+                }
+                else
+                {
+                    CloseZeroPairChunk();
+                    writePos++;
+                }
+            }
+            else
+            {
+                CloseZeroChunk();
+                writePos++;
+            }
+        }
+
+        private void Reset()
+        {
+            readPos = 0;
+            writePos = 1;
+            chunkPos = 0;
+
+            zeroesRunLength = 0;
+            chunkLength = EMPTY_CHUNK_LENGTH;
+        }
+
+        private void ProcessNextZero()
+        {
+            zeroesRunLength++;
+            readPos++;
+        }
+
+        private void ProcessZeroesRun()
+        {
+            if (chunkLength == EMPTY_CHUNK_LENGTH)
+            {
+                CloseZeroRunChunk();
+            }
+            else if (zeroesRunLength == ZERO_PAIR_COUNT)
+            {
+                CloseZeroPairChunk();
+            }
+            else
+            {
+                CloseZeroChunk();
+            }
+        }
+
+        private void CloseZeroRunChunk()
+        {
+            buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
+            CloseChunk();
+            zeroesRunLength = 0;
+        }
+
+        private void CloseZeroPairChunk()
+        {
+            buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - ZERO_PAIR_COUNT));
+            CloseChunk();
+            zeroesRunLength = 0;
+        }
+        
+        private void CloseZeroChunk()
+        {
+            buffer[chunkPos] = chunkLength;
+            CloseChunk();
+            zeroesRunLength = 0;
+        }
+
+        private void CloseChunk()
+        {
+            chunkPos = writePos;
+            chunkLength = EMPTY_CHUNK_LENGTH;
         }
 
         private static int GetMaxOutputLength(int inputLength)
