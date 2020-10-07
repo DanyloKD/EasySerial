@@ -84,7 +84,8 @@ namespace EasySerial
                 ProcessZeroesRun();
                 writePos++;
             }
-            else if (chunkLength == MAX_CHUNK_LENGTH)
+            
+            if (chunkLength == MAX_CHUNK_LENGTH)
             {
                 buffer[chunkPos] = MAX_CHUNK_LENGTH;
                 CloseChunk();
@@ -178,7 +179,7 @@ namespace EasySerial
         private void CloseZeroPairChunk()
         {
             buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - ZERO_PAIR_COUNT));
-            CloseChunk();
+           CloseChunk();
             zeroesRunLength = 0;
         }
 
