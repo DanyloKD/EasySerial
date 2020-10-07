@@ -74,7 +74,7 @@ namespace EasySerial.Tests
             var output = encoder.Encode(input);
 
             Assert.Equal(
-                new byte[] { 0xD1, 0x02, 0x01, CobsZpeZreEncoder.DELIMITER },
+                new byte[] { 0x01, 0x02, 0x01, CobsZpeZreEncoder.DELIMITER },
                 output
             );
         }
@@ -150,7 +150,7 @@ namespace EasySerial.Tests
             var output = encoder.Encode(input);
 
             Assert.Equal(
-                new byte[] { 0xD1, 0x00 },
+                new byte[] { 0x01, 0x00 },
                 output
             );
         }
@@ -204,7 +204,7 @@ namespace EasySerial.Tests
 
             Assert.Equal(34, output.Length);
             Assert.Equal(32, output[0]);
-            Assert.Equal(0xD2, output[32]);
+            Assert.Equal(0xDF, output[32]);
             Assert.Equal(CobsZpeZreEncoder.DELIMITER, output.Last());
             Assert.Equal(31, output.Count(a => a == 0x42));
         }

@@ -150,14 +150,18 @@ namespace EasySerial
 
         private void ProcessZeroesRun()
         {
-            if (chunkLength == EMPTY_CHUNK_LENGTH)
+            if (zeroesRunLength < ZERO_PAIR_COUNT)
             {
-                CloseZeroRunChunk();
+                CloseZeroChunk();
             }
             else if (zeroesRunLength == ZERO_PAIR_COUNT)
             {
                 CloseZeroPairChunk();
             }
+            else if (chunkLength == EMPTY_CHUNK_LENGTH)
+            {
+                CloseZeroRunChunk();
+            }            
             else
             {
                 CloseZeroChunk();
