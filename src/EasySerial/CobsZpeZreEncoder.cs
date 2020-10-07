@@ -53,13 +53,19 @@ namespace EasySerial
                 }
             }
 
-            if (zeroesRunLength > 0)
+            if (zeroesRunLength == 0)
             {
-                ProcessZeroesRun();
+                buffer[chunkPos] = chunkLength;
+            }
+            else if (zeroesRunLength == 1 && chunkLength != EMPTY_CHUNK_LENGTH)
+            {
+                CloseZeroChunk();
+                writePos++;
+                buffer[chunkPos] = chunkLength;
             }
             else
             {
-                buffer[chunkPos] = chunkLength;
+                ProcessZeroesRun();
             }
 
             buffer[writePos] = DELIMITER;
@@ -171,7 +177,7 @@ namespace EasySerial
             CloseChunk();
             zeroesRunLength = 0;
         }
-        
+
         private void CloseZeroChunk()
         {
             buffer[chunkPos] = chunkLength;

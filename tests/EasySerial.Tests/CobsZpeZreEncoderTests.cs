@@ -52,6 +52,34 @@ namespace EasySerial.Tests
         }
 
         [Fact]
+        public void Encoder_ShortPacketEndsWithZero_InsertsSeparators()
+        {
+            var encoder = new CobsZpeZreEncoder();
+
+            var input = new byte[] { 0x01, 0x00 };
+            var output = encoder.Encode(input);
+
+            Assert.Equal(
+                new byte[] { 0x02, 0x01, 0x01, CobsZpeZreEncoder.DELIMITER },
+                output
+            );
+        }
+
+        [Fact]
+        public void Encoder_ZeroOne_EncodedSimple()
+        {
+            var encoder = new CobsZpeZreEncoder();
+
+            var input = new byte[] { 0x00, 0x01 };
+            var output = encoder.Encode(input);
+
+            Assert.Equal(
+                new byte[] { 0xD1, 0x02, 0x01, CobsZpeZreEncoder.DELIMITER },
+                output
+            );
+        }
+
+        [Fact]
         public void Encoder_ShortPacketWithTwoTrailingDelimiters_InsertsSpecialLength()
         {
             var encoder = new CobsZpeZreEncoder();
