@@ -9,7 +9,7 @@ namespace EasySerial
         private bool hasStart;
 
         private bool hasDelimiter;
-        private int chunkLength;
+        private int packetLength;
         private int zeroesRunLength;
         private int writePos;
 
@@ -23,7 +23,7 @@ namespace EasySerial
                 return false;
             }
 
-            if (writePos < chunkLength)
+            if (writePos < packetLength)
             {
                 ProcessNextContentByte(input);
                 return false;
@@ -80,7 +80,7 @@ namespace EasySerial
         private void Reset()
         {
             hasDelimiter = false;
-            chunkLength = 0;
+            packetLength = 0;
             zeroesRunLength = 0;
             writePos = 0;
         }
@@ -90,7 +90,7 @@ namespace EasySerial
             if (input <= CobsZpeZreEncoder.MAX_CHUNK_LENGTH)
             {
                 hasDelimiter = input != CobsZpeZreEncoder.MAX_CHUNK_LENGTH;
-                chunkLength += input - 1;
+                packetLength += input - 1;
                 zeroesRunLength = 0;
             }
             else if (CobsZpeZreEncoder.ZERO_RUN_MIN < input
@@ -98,7 +98,7 @@ namespace EasySerial
             )
             {
                 hasDelimiter = false;
-                chunkLength += 0;
+                packetLength += 0;
                 zeroesRunLength = input - CobsZpeZreEncoder.ZERO_RUN_MIN;
             }
             else if (CobsZpeZreEncoder.ZERO_PAIR_MIN <= input
@@ -106,7 +106,7 @@ namespace EasySerial
             )
             {
                 hasDelimiter = false;
-                chunkLength += input - CobsZpeZreEncoder.ZERO_PAIR_MIN - 1;
+                packetLength += input - CobsZpeZreEncoder.ZERO_PAIR_MIN - 1;
                 zeroesRunLength = CobsZpeZreEncoder.ZERO_PAIR_COUNT;
             }
         }
@@ -115,7 +115,7 @@ namespace EasySerial
         {
             buffer[writePos] = CobsZpeZreEncoder.DELIMITER;
             writePos++;
-            chunkLength++;
+            packetLength++;
         }
 
         private void AppendRunningZeroes()
@@ -137,7 +137,7 @@ namespace EasySerial
 
         private void ResetDecoderIfChunkTooLong()
         {
-            if (chunkLength > CobsZpeZreEncoder.MAX_PACKET_SIZE)
+            if (packetLength > CobsZpeZreEncoder.MAX_PACKET_SIZE)
             {
                 hasStart = false;
             }
