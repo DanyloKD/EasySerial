@@ -11,11 +11,12 @@ namespace EasySerial
 
         public const int ZERO_RUN_MIN = 0xD0;
         public const int ZERO_RUN_MAX = 0xDF;
-        private const int ZERO_RUN_LENGTH = ZERO_RUN_MAX - ZERO_RUN_MIN;
 
         public const int ZERO_PAIR_MIN = 0xE0;
         public const int ZERO_PAIR_MAX = 0xFE;
         public const int ZERO_PAIR_COUNT = 2;
+
+        private const int ZERO_RUN_LENGTH = ZERO_RUN_MAX - ZERO_RUN_MIN;
         private const int ZERO_PAIR_LENGTH = ZERO_PAIR_MAX - ZERO_PAIR_MIN + 1;
         
         private const int EMPTY_CHUNK_LENGTH = 1;
@@ -32,9 +33,8 @@ namespace EasySerial
         public byte[] Encode(in byte[] raw)
         {
             var inputLength = raw.Length;
-
-            var maxOutputLength = GetMaxOutputLength(inputLength);
-            if (maxOutputLength > buffer.Length)
+            
+            if (!HasEnoughtBufferToEncode(inputLength))
             {
                 throw new ArgumentOutOfRangeException(nameof(raw), "Input is too long");
             }
@@ -45,6 +45,7 @@ namespace EasySerial
                 var nextByte = raw[readPos];
                 if (nextByte != DELIMITER)
                 {
+                    ProcessRunningZeroesIfAny();
                     ProcessNextByte(nextByte);
                 }
                 else
@@ -53,38 +54,19 @@ namespace EasySerial
                 }
             }
 
-            if (zeroesRunLength == 0)
-            {
-                buffer[chunkPos] = chunkLength;
-            }
-            else if (zeroesRunLength == 1 && chunkLength != EMPTY_CHUNK_LENGTH)
-            {
-                CloseZeroChunk();
-                writePos++;
-                buffer[chunkPos] = chunkLength;
-            }
-            else
-            {
-                ProcessZeroesRun();
-            }
+            CloseLastChunk();
+            ClosePacketWithDelimiter();
 
-            buffer[writePos] = DELIMITER;
-
-            var outputSize = writePos + 1;
-            var output = new byte[outputSize];
-            Array.Copy(buffer, output, outputSize);
-
-            return output;
+            return CopyEncodedData();
+        }
+        
+        private bool HasEnoughtBufferToEncode(int inputLength)
+        {
+            return buffer.Length >= GetMaxOutputLength(inputLength);
         }
 
         private void ProcessNextByte(byte nextByte)
         {
-            if (zeroesRunLength > 0)
-            {
-                ProcessZeroesRun();
-                writePos++;
-            }
-            
             if (chunkLength == MAX_CHUNK_LENGTH)
             {
                 buffer[chunkPos] = MAX_CHUNK_LENGTH;
@@ -133,6 +115,15 @@ namespace EasySerial
             }
         }
 
+        private void ProcessRunningZeroesIfAny()
+        {
+            if (zeroesRunLength > 0)
+            {
+                ProcessZeroesRun();
+                writePos++;
+            }
+        }
+
         private void Reset()
         {
             readPos = 0;
@@ -172,28 +163,59 @@ namespace EasySerial
         private void CloseZeroRunChunk()
         {
             buffer[chunkPos] = (byte)(ZERO_RUN_MIN + zeroesRunLength);
-            CloseChunk();
             zeroesRunLength = 0;
+            CloseChunk();
         }
 
         private void CloseZeroPairChunk()
         {
             buffer[chunkPos] = (byte)(ZERO_PAIR_MIN + (chunkLength - ZERO_PAIR_COUNT));
-           CloseChunk();
             zeroesRunLength = 0;
+            CloseChunk();
         }
 
         private void CloseZeroChunk()
         {
             buffer[chunkPos] = chunkLength;
-            CloseChunk();
             zeroesRunLength = 0;
+            CloseChunk();
         }
 
         private void CloseChunk()
         {
             chunkPos = writePos;
             chunkLength = EMPTY_CHUNK_LENGTH;
+        }
+
+        private void CloseLastChunk()
+        {
+            if (zeroesRunLength == 0)
+            {
+                buffer[chunkPos] = chunkLength;
+            }
+            else if (zeroesRunLength == 1 && chunkLength != EMPTY_CHUNK_LENGTH)
+            {
+                CloseZeroChunk();
+                writePos++;
+                buffer[chunkPos] = chunkLength;
+            }
+            else
+            {
+                ProcessZeroesRun();
+            }
+        }
+
+        private void ClosePacketWithDelimiter()
+        {
+            buffer[writePos] = DELIMITER;
+            writePos++;
+        }
+
+        private byte[] CopyEncodedData()
+        {
+            var output = new byte[writePos];
+            Array.Copy(buffer, output, writePos);
+            return output;
         }
 
         private static int GetMaxOutputLength(int inputLength)
