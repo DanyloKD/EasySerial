@@ -28,9 +28,20 @@ namespace EasySerial
                 ProcessNextContentByte(input);
                 return false;
             }
-            
-            // writePos == chunkLength
-            return ProcessNextControlByte(input, ref output);
+
+            AppendRunningZeroes();
+            if (input != CobsZpeZreEncoder.DELIMITER)
+            {
+                ProcessStartOfNextChunk(input);
+
+                return false;
+            }
+            else
+            {
+                output = CopyDecodedData();
+                
+                return true;
+            }
         }
 
         private void ProcessFirstControlByte(byte input)
@@ -41,33 +52,6 @@ namespace EasySerial
                 NextState(input);
 
                 hasStart = true;
-            }
-        }
-
-        private bool ProcessNextControlByte(byte input, ref byte[] output)
-        {
-            AppendRunningZeroes();
-
-            if (input != CobsZpeZreEncoder.DELIMITER)
-            {
-                AppendDelimiterIfRequired();
-                NextState(input);
-
-                if (chunkLength > CobsZpeZreEncoder.MAX_PACKET_SIZE)
-                {
-                    // prevent buffer overflow: discard data and start over
-                    hasStart = false;
-                }
-
-                return false;
-            }
-            else
-            {
-                output = new byte[writePos];
-                Array.Copy(buffer, output, writePos);
-                hasStart = false;
-
-                return true;
             }
         }
 
@@ -141,6 +125,32 @@ namespace EasySerial
                 this.AppendZero();
                 zeroesRunLength--;
             }
+        }
+
+        private void ProcessStartOfNextChunk(byte input)
+        {
+            AppendDelimiterIfRequired();
+            NextState(input);
+            // prevent buffer overflow: discard data and start over
+            ResetDecoderIfChunkTooLong();
+        }
+
+        private void ResetDecoderIfChunkTooLong()
+        {
+            if (chunkLength > CobsZpeZreEncoder.MAX_PACKET_SIZE)
+            {
+                hasStart = false;
+            }
+        }
+
+        private byte[] CopyDecodedData()
+        {
+            var output = new byte[writePos];
+            Array.Copy(buffer, output, writePos);
+
+            hasStart = false;
+
+            return output;
         }
 
     }
