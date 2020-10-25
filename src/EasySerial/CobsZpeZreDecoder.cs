@@ -13,34 +13,30 @@ namespace EasySerial
         private int zeroesRunLength;
         private int writePos;
 
-        public bool NextByte(in byte input, out byte[] output)
+        public byte[] NextByte(in byte input)
         {
-            output = null;
-
             if (!hasStart)
             {
                 ProcessFirstControlByte(input);
-                return false;
+                return null;
             }
 
             if (writePos < packetLength)
             {
                 ProcessNextContentByte(input);
-                return false;
+                return null;
             }
 
             AppendRunningZeroes();
             if (input != CobsZpeZreEncoder.DELIMITER)
             {
                 ProcessStartOfNextChunk(input);
-
-                return false;
+                return null;
             }
             else
             {
-                output = CopyDecodedData();
-                
-                return true;
+                var output = CopyDecodedData();
+                return output;
             }
         }
 
@@ -73,7 +69,7 @@ namespace EasySerial
         {
             if (hasDelimiter)
             {
-                this.AppendZero();
+                AppendZero();
             }
         }
 
@@ -95,16 +91,14 @@ namespace EasySerial
             }
             else if (CobsZpeZreEncoder.ZERO_RUN_MIN < input
                 && input < CobsZpeZreEncoder.ZERO_RUN_MAX
-            )
-            {
+            ){
                 hasDelimiter = false;
                 packetLength += 0;
                 zeroesRunLength = input - CobsZpeZreEncoder.ZERO_RUN_MIN;
             }
             else if (CobsZpeZreEncoder.ZERO_PAIR_MIN <= input
                 && input < CobsZpeZreEncoder.ZERO_PAIR_MAX
-            )
-            {
+            ){
                 hasDelimiter = false;
                 packetLength += input - CobsZpeZreEncoder.ZERO_PAIR_MIN - 1;
                 zeroesRunLength = CobsZpeZreEncoder.ZERO_PAIR_COUNT;
@@ -122,7 +116,7 @@ namespace EasySerial
         {
             while (zeroesRunLength > 0)
             {
-                this.AppendZero();
+                AppendZero();
                 zeroesRunLength--;
             }
         }

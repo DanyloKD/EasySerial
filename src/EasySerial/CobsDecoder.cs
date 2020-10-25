@@ -12,10 +12,8 @@ namespace EasySerial
         private bool hasDelimiter;
         private int chunkLength;
 
-        public bool NextByte(in byte input, out byte[] output)
+        public byte[] NextByte(in byte input)
         {
-            output = null;
-
             if (!hasStart)
             {
                 if (input != CobsEncoder.DELIMITER)
@@ -27,7 +25,7 @@ namespace EasySerial
                     hasStart = true;
                 }
 
-                return false;
+                return null;
             }
 
             if (writePos < chunkLength)
@@ -43,7 +41,7 @@ namespace EasySerial
                     hasStart = false;
                 }
 
-                return false;
+                return null;
             }
 
             // (writePos == chunkLength)
@@ -69,16 +67,16 @@ namespace EasySerial
                     hasStart = false;
                 }
 
-                return false; 
+                return null; 
             }
             else 
             {
-                output = new byte[writePos];
+                var output = new byte[writePos];
 
                 Array.Copy(buffer, output, writePos);
                 hasStart = false;
 
-                return true;
+                return output;
             }
         }
 

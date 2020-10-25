@@ -12,14 +12,13 @@ namespace EasySerial.Tests
             var decoder = new CobsZpeZreDecoder();
             var input = new byte[] { 0x03, 0x01, 0x02, 0x00 };
             
-            bool result = false;
             byte[] output = null;
             foreach(var b in input)
             {
-                result = decoder.NextByte(b, out output);    
+                output = decoder.NextByte(b);    
             }
 
-            Assert.True(result);
+            Assert.NotNull(output);
             Assert.NotNull(output);
             Assert.Equal(new byte[] { 0x01, 0x02 }, output);
         }
@@ -35,14 +34,12 @@ namespace EasySerial.Tests
             Array.Fill<byte>(input, 0x01, 0xD0 + 1, 3);
             input[0xD4] = 0x00;
 
-            bool result = false;
             byte[] output = null;
             foreach (var b in input)
             {
-                result = decoder.NextByte(b, out output);
+                output = decoder.NextByte(b);
             }
 
-            Assert.True(result);
             Assert.NotNull(output);
             Assert.Equal(0xD0 - 1 + 3, output.Length);
             Assert.Equal(0xD0 - 1 + 3, output.Count(b => b == 0x01));
@@ -54,14 +51,12 @@ namespace EasySerial.Tests
             var decoder = new CobsZpeZreDecoder();
             var input = new byte[] { 0xD7, 0x00 };
 
-            bool result = false;
             byte[] output = null;
             foreach (var b in input)
             {
-                result = decoder.NextByte(b, out output);
+                output = decoder.NextByte(b);
             }
 
-            Assert.True(result);
             Assert.NotNull(output);
             Assert.Equal(7, output.Length);
             Assert.True(output.All(b => b == 0x00));
@@ -73,14 +68,12 @@ namespace EasySerial.Tests
             var decoder = new CobsZpeZreDecoder();
             var input = new byte[] { 0xE5, 0x01, 0x02, 0x03, 0x04, 0x00 };
 
-            bool result = false;
             byte[] output = null;
             foreach (var b in input)
             {
-                result = decoder.NextByte(b, out output);
+                output = decoder.NextByte(b);
             }
 
-            Assert.True(result);
             Assert.NotNull(output);
             Assert.Equal(6, output.Length);
             Assert.Equal(new byte[] { 0x01, 0x02, 0x03, 0x04, 0x00, 0x00 }, output);
@@ -104,14 +97,13 @@ namespace EasySerial.Tests
 
             var decoder = new CobsZpeZreDecoder();
 
-            bool result = default;
             byte[] output = null;
             foreach (var b in input)
             {
-                result = decoder.NextByte(b, out output);
+                output = decoder.NextByte(b);
             }
 
-            Assert.True(result);
+            Assert.NotNull(output);
             Assert.Equal(CobsEncoder.MAX_PACKET_SIZE, output.Length);
             Assert.Equal(CobsEncoder.MAX_PACKET_SIZE, output.Count(a => a == 0x04));
         }
@@ -135,14 +127,12 @@ namespace EasySerial.Tests
 
             var decoder = new CobsZpeZreDecoder();
 
-            bool result = default;
             byte[] output = null;
             foreach (var b in input)
             {
-                result = decoder.NextByte(b, out output);
+                output = decoder.NextByte(b);
+                Assert.Null(output);
             }
-
-            Assert.False(result);
         }
 
         private byte[] DataChunk(byte length, byte value)
